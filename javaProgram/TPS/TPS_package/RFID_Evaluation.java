@@ -8,7 +8,7 @@ public class RFID_Evaluation {
 		
 	protected int local_streetID;
 	protected HashMap<Integer, Integer> local_RFID;
-	protected HashMap<Integer, String> RelayRFID;
+
 	protected HashMap<Integer, Integer> temp = new HashMap<Integer, Integer>();
 	protected HashMap<Integer, Integer> onStreet_AEV;// AEV = ACTIVE EMERGENCY VEHICLES.
 	protected HashMap<Integer, Integer> onStreet_PTV;// PTV = PUBLIC TRANSPORT VEHICLES.
@@ -16,26 +16,35 @@ public class RFID_Evaluation {
 	protected HashMap<Integer, Integer> Sorted_RFID_PTV;// PTV = PUBLIC TRANSPORT VEHICLES.
 	
  	/** Sorts and stores the active RFID vehicles.
- 	 * @param RFID: the RFID hashmap for the whole city.
- 	 * @param streetID: the current streetID
+ 	 * @param RFID the RFID hashmap for the whole city.
+ 	 * @param streetID the current streetID
  	 * @return: a array with the number of 
  	 * @throws IOException
  	 */
- 	public void sortAndStoreRFID(HashMap<Integer, Integer> RFID, int streetID) throws IOException {
+ 	public HashMap<Integer, String> sortAndStoreRFID(HashMap<Integer, Integer> RFID, int streetID) throws IOException {
  		memoryHandling memory_Handling = new memoryHandling();
+ 		// assigne the local variables.
  		local_RFID = RFID;
  		local_streetID = streetID;
-		//HashMap<Integer, Integer> temp = new HashMap<Integer, Integer>();
  		
+ 		//sort out the active vehicles that are on the street.
  		Sorted_RFID_EV = sortVehicles(1, 3);
  		Sorted_RFID_PTV = sortVehicles( 4, 6);
  		onStreet_AEV = vehicleIsOnsStreet(1);
 		onStreet_PTV = vehicleIsOnsStreet(2);
 		
-		onStreet_AEV.forEach((key,value) -> temp.put(key, value));
-		onStreet_PTV.forEach((key,value) -> temp.put(key, value));
-		RelayRFID = convertRFID();
-		memory_Handling.createMemory(RelayRFID.toString(), 2);
+		for (Entry<Integer, Integer> entry : onStreet_AEV.entrySet()){
+			temp.put(entry.getKey(), entry.getValue());
+		}
+		for (Entry<Integer, Integer> entry : onStreet_PTV.entrySet()){
+			temp.put(entry.getKey(), entry.getValue());
+		}
+		// ensures that the temp hashmap is empty if the there are no active vehicles on the street. 
+		if(onStreet_AEV.isEmpty() == true || onStreet_PTV.isEmpty() == true  ) {
+			 temp.clear();
+		}
+		return convertRFIDToArray();
+		
  	}
  	
  //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// 	
@@ -47,11 +56,13 @@ public class RFID_Evaluation {
  	 *  	     intArray [3]== Rout
  	 * @throws IOException
  	 */
-	public HashMap<Integer, String> convertRFID() throws IOException{
+	public HashMap<Integer, String> convertRFIDToArray() throws IOException{
 		int[] intArray = {0,0,0,0};
 		HashMap<Integer, String> returnHashMap = new HashMap<Integer, String>();
 		String stringText = "";
+		// if there are no active vehicles scip this part.
 		if(temp.isEmpty() == false) {
+			//Splits up the RFID data and stores it in a array.
 			for (Entry<Integer, Integer> entry : temp.entrySet()){
 				intArray[0] = entry.getValue();
 				intArray[1] = getSensorIDFromRFID(entry.getValue());
@@ -65,23 +76,24 @@ public class RFID_Evaluation {
 				returnHashMap.put(entry.getKey(), stringText);
 			}	
 		}
-		// sets all the values to zero if no vehicles vas active.
+		
+		/*sets all the values to zero if no vehicles vas active.
 		else {
-			stringText = intArray[0]+";"+intArray[1]+";"+intArray[2]+";"+intArray[3];
-			returnHashMap.put(-10000, stringText);
+			//stringText = intArray[0]+";"+intArray[1]+";"+intArray[2]+";"+intArray[3];
+			//returnHashMap.put(-10000, stringText);
 			/*for(int i = 10000; i<=60000; i += 10000) {
 				for(int j = 1; j<=1; j++) {
 				
 				}	
-			}*/
-		}
-		
+			}
+		}*/
 		return returnHashMap;
 	}
 	
-	/**Fetches the last sensor that the vehicle has passed. 
-	 * @param street: 
-	 * @return the ID of the last passed sensor i.e for streetID= 12 => returns 1, streetID 910 => returns 9 and so on. 
+	/**
+	 * Fetches the last sensor that the vehicle has passed. 
+	 * @param RFID: the vehicles RFID data.
+	 * @return: the last sensor that the vehcile passed. i.e for streetID= 12 => returns 1, streetID 910 => returns 9 and so on. 
 	 */
 	public int getSensorIDFromRFID(int RFID){
 		int street_id = RFID/10000;
@@ -102,15 +114,15 @@ public class RFID_Evaluation {
 	 * Sorts out the vehicles that is on the street.
 	 * @param c: variable to decide witch of the hashmaps Sorted_RFID_EV and
 	 * 			 Sorted_RFID_PTV we wan`t to sort. 
-	 * @return: A hashmap with the RFID vehicles that currently are on the street.
-	 * 			And the emergency vehicles that are active.
+	 * @return: A hashmap with the RFID vehicles that currently are active and on the street.
 	 * @throws IOException
 	 */
 	public HashMap<Integer, Integer> vehicleIsOnsStreet(int c) throws IOException{
 		
 		HashMap<Integer, Integer> onStreetHashMap = new HashMap<Integer, Integer>();
 		HashMap<Integer, Integer> hashMap = new HashMap<Integer, Integer>();	
-		// Decide witch of the hashmaps 
+		
+		// Decide if it is emergency or public transport vehicles that will be checked.
 		switch(c) {
 		case 1:
 			hashMap = Sorted_RFID_EV;
@@ -119,17 +131,20 @@ public class RFID_Evaluation {
 			hashMap = Sorted_RFID_PTV;
 			break;
 		}
+
 		for (Entry<Integer, Integer> entry : hashMap.entrySet()){
 			// Examine if the vehicle is on the street.
-			if(isItOnStreet(entry.getKey(),entry.getValue())) {
+			if(isItOnStreet(entry.getValue())) {
 				//Register if the emergency vehicles are active
 				if(typeExamination(entry.getKey(), 1, 3)) 
+					// Examine if the vehicle is active.
 					{if(isActive(entry.getKey(), entry.getValue())){
 						onStreetHashMap.put(entry.getKey(), entry.getValue());
 					}
 				}
 				//Register the public transport vehicles
 				else if(typeExamination(entry.getKey(), 4, 6)){
+					// Examine if the vehicle is active ( i.e it is driving a route).
 					if(isActive(entry.getKey(), entry.getValue())){
 						onStreetHashMap.put(entry.getKey(), entry.getValue());
 					}
@@ -140,12 +155,11 @@ public class RFID_Evaluation {
 	}
 	
 	/**Examine if the vehicle is on the street. 
-	 * @param VehicleID: the identification of the vehicle.
 	 * @param RFIDData: The vehicles RFID data  
 	 * @return: true if vehicle is on the street and return false otherwise 
 	 * @throws IOException
 	 */
-    public boolean isItOnStreet(int VehicleID,int RFIDData) throws IOException {
+    public boolean isItOnStreet(int RFIDData) throws IOException {
     	// get the streetID from the RFID
     	int rfid_streetID = RFIDData/10000; 
     	boolean returnValue = false;
@@ -172,12 +186,18 @@ public class RFID_Evaluation {
     	return false;    
     }
 
-    /**Check if the emergency vehicle are active (or if the public transports are on a route).
+    /**
+     *  Check if the emergency vehicle are active (or if the public transports are on a route).
+     * @param key: the vehicle ID
      * @param value: the RFID data of the vehicle.
      * @return: true if active is equal to 1.
+     * @throws IOExceptio
+     * @param value
+     * @return
      * @throws IOException
      */
     public boolean isActive(int key, int value) throws IOException {
+    	//determine if it is an emergency vehicle or if it is an public transport vehicle.
     	int k = key/10000;
     	if(1 <= k && k < 4) {
     		//gets the variable what tells says if the vehicle is active or not.

@@ -10,20 +10,42 @@ import java.io.IOException;
 
 public class memoryHandling{ 
 	
-	/**FOR TESTING THE SYSTEM 
-	 * constructor that nullifies the memory 
+	/**Method that clears/creates empty memory storage for all the memorys. 
 	 * @throws IOException 
 	 */
-/*public memoryHandling() throws IOException {
-		Matrixes matrix = new Matrixes();
+public void Clear_Memory() throws IOException {
+		CityMatrix city_Matrix = new CityMatrix();
+		
+		//creates the address string
 		String adress = "";
-		// Nullifies the value memory.
+		
+//////////Nullifies Memory_All_RFID.
+		String startRFID = "";
+		int x;
+		for(int i = 10000; i <= 60000; i +=10000) {
+			if(i == 10000 || i == 30000 || i == 40000 || i == 60000) {
+				for(int j = 1; j <= 1; j++){
+					x = i+j;
+					if(x == 10001) { startRFID += "{"+x+"=120000";}
+					else{ startRFID += ", "+x+"=120000";}
+				}
+			}
+		}
+		startRFID += "}";
+		adress = memory_address(0);
+		FileWriter memoryRFID_Nullifie = new FileWriter(adress);
+		for (int i = 0; i < startRFID.length(); i++) {
+			memoryRFID_Nullifie.write(startRFID.charAt(i));
+		}
+		memoryRFID_Nullifie.close();
+		
+//////////Nullifies Memory_Values.
 		int streetID;
-		String startValues = "{";
+		String startValues = "";
 		for(int j = 1; j <= 6; j++) {
-			streetID = matrix.GetStreet(j);
+			streetID = city_Matrix.GetStreet(j);
 			if(j==1) {
-				startValues+= streetID+"=0;0;0;0";
+				startValues+= "{"+streetID+"=0;0;0;0";
 			}
 			else {
 				startValues+= ", "+streetID+"=0;0;0;0";
@@ -38,35 +60,21 @@ public class memoryHandling{
 		 memoryValueNullifie.write(startValues); 
 		 memoryValueNullifie.close(); 
 		
-		// Nullifies the allRFID memory.
-		String startRFID = "";
-		int x;
-		for(int i = 10000; i <= 60000; i +=10000) {
-			if(i == 10000 || i == 30000 || i == 40000 || i == 60000) {
-				for(int j = 1; j <= 1; j++){
-					x = i+j;
-					if(x == 10001) { startRFID += "{"+x+"=121000";}
-					else{ startRFID += ", "+x+"=120000";}
-				}
-			}
-		}
-		startRFID += "}";
-		adress = memory_address(0);
-		FileWriter memoryRFID_Nullifie = new FileWriter(adress);
-		for (int i = 0; i < startRFID.length(); i++) {
-			memoryRFID_Nullifie.write(startRFID.charAt(i));
-		}
-		memoryRFID_Nullifie.close();
+
 		
-		// Nullifies the all the active vehicles in  memory.
+/////////////// Nullifies Memory_Active_RFID.
 				String startActiveRFID = "";
 				int ij;
 				for(int i = 10000; i <= 60000; i +=10000) {
 					if(i == 10000 || i == 30000 || i == 40000 || i == 60000) {
 						for(int j = 1; j <= 1; j++){
 							ij = i+j;
-							if(ij == 10001) { startActiveRFID += "{"+ij+"=0;0;0;0";}
-							else{ startActiveRFID += ", "+ij+"=0;0;0;0";}
+							if(ij == 10001) {
+								startActiveRFID += "{"+ij+"=0;0;0;0";
+							}
+							else{ 
+								startActiveRFID += ", "+ij+"=0;0;0;0";
+							}
 						}
 					}
 				}
@@ -78,7 +86,7 @@ public class memoryHandling{
 				}
 				memoryActiveRFID_Nullifie.close();
 		
-	}*/
+	}
 	
 	/**
 	 * sets the address of the memory
@@ -111,8 +119,7 @@ public class memoryHandling{
 		return address;
 	}
 	
-	/**
-	 * creates/updates the memory
+	/**creates/updates the memory
 	 * @param Hashmap: the map that will be stored.
 	 * @param j: the address of the memory 
 	 * @throws IOException if any of the variables is null.
@@ -132,7 +139,6 @@ public class memoryHandling{
 		for (int i = 0; i < hashMapStr.length(); i++) 
 			memoryFw.write(hashMapStr.charAt(i)); 
 
-	//System.out.println("Writing successful"); 
 			//close the file  
 			memoryFw.close(); 
 	} 

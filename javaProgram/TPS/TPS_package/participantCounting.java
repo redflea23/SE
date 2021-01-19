@@ -10,10 +10,8 @@ public class participantCounting {
 
 	
 	protected int local_streetID;
-	// stores the previous values. 
+
 	protected int[] oldValue = {0,0,0,0};
-	
-	// stores the last number of each pedestrian type.
 	protected int[] relayValues = {0, 0, 0, 0};
 	protected int[] local_streetSensor1;
 	protected int[] local_streetSensor2;
@@ -23,89 +21,90 @@ public class participantCounting {
 	protected HashMap<Integer, int[]> active_RFID_vehicles = new HashMap<Integer, int[]>();
 	
 	/**
-	 * Counts the number of participants per category on the street.
-	 * @param street_ID: the number of the street
-	 * @param videoFeed: the number of regular vehicles.
-	 * @param oldValues: the previous calculated numbers from the last iteration. 
-	 * @param emergencyVehicles: A hasmap containing the emergency vehicles on the street.
-	 * @param publicTransport: A hasmap containing the public transport vehicles on the street.
-	 * @param streetSensor1: data from sensor1 in form of a hashmap.
-	 * @param streetSensor2: data from sensor2 in form of a hashmap.
-	 * 											key = the number that has entered the street at the sensor
-	 * 											value = the number that has left the street at the sensor.
-	 * @return a integer list with the values:
-	 *		returnList[0] = NrPedestrians
-	 *  	returnList[1] = NrRegularVehicles
-	 *  	returnList[2] = NrEmergancyVehicles
-	 *  	returnList[3] = NrPublicTransport 
+	 *  Counts the number of participants per category on the street.
+	 * @param streetID: the current streets ID
+	 * @param videoFeed: the videoFeed from the current street
+	 * @param streetSensorData: data from the pedestrians sensors
+	 * @param activVeicles: a hashmap containg the active vehicles and ther RFID data as a string variable.
+	 * @return A hashmap containg the streetID as key and a string representation of the array containg all the values.
 	 * @throws IOException
 	 */
-	public void count(int streetID, int videoFeed, int[][] streetSensorData) throws IOException {
+	public HashMap<Integer, String> count(int streetID, int videoFeed, int[][] streetSensorData,HashMap<Integer, String> activVeicles) throws IOException {
 		memoryHandling memory_Handling = new memoryHandling();
 		
+		//declaring of local variables
 		local_streetID = streetID;
 		local_streetSensor1 = streetSensorData[0]; 
 		local_streetSensor2 = streetSensorData[1]; 
 		
-		// Ensures that the relayValues is cleared.
-		relayValues[0] = 0;
-		relayValues[1] = 0;
-		relayValues[2] = 0;
-		relayValues[3] = 0;
-		oldValue[0] = 0;
-		oldValue[1] = 0;
-		oldValue[2] = 0;
-		oldValue[3] = 0;
+		//ensures that the array with the relay values are empty.
+		for(int k = 0; k< 4;k++) {
+			relayValues[k] = 0;
+		}
 		
-		// Get the old participant values. and the active RFID veichles on the street.
-
+		// Fetches the old participant values. and the active RFID veichles on the street.
 		oldValues.putAll(string_Converter.StringToIntArrayHashMap(memory_Handling.readMemory(1)));	
-		active_RFID_vehicles.putAll(string_Converter.StringToIntArrayHashMap(memory_Handling.readMemory(2)));
-		
+
 		// if there exists old values add them to oldValue
 		// else: just ceep oldValues as {0, 0, 0, 0}; 
 		if(oldValues.get(local_streetID) != null) {
 			oldValue = oldValues.get(local_streetID);
 		}				
 		
-		//calculate the number of pedestrians on the streets
+		//calculate the number of pedestrians on the streets. 
 		pedestrianCounting();
-		//Number of emergency vehicles and public transport vehicles.
-		for (Entry<Integer, int[]> entry : active_RFID_vehicles.entrySet()){
-			if(entry.getKey()==1920 || entry.getKey()==8384) {
-				int p = 0;
-			}
-			if((entry.getKey()/10000) < 4 && (entry.getKey()/10000)>0) {relayValues[2] += 1;}
-			else if((entry.getKey()/10000)>0) 						   {relayValues[3] += 1;}
+		
+		//Ensures thet the hashmap with the active vehicles are empty.
+		active_RFID_vehicles.clear();
+		
+		//put the active vehicles data into the active_RFID_vehicles and convert the string value to an integer array. 
+		for (Entry<Integer, String> entry : activVeicles.entrySet()){
+			active_RFID_vehicles.put(entry.getKey(),string_Converter.stringToIntArray2(entry.getValue()));
 		}
-		relayValues[1] = oldValue[1] + (videoFeed - relayValues[2] - relayValues[3]);	
 		
-			// Prepares the data of the number of participants per category for storage
-			String ValueText = relayValues[0]+";"+relayValues[1]+";"+relayValues[2]+";"+relayValues[3];
-			MemoryValues.put(local_streetID, ValueText);
-					
-		//Stores data in memory.
-		memory_Handling.createMemory(MemoryValues.toString(), 1);
-		
+		//count the number of active emergency vehicles and public transport vehicles.
+		if(active_RFID_vehicles.isEmpty() == false) {
+			//Number of emergency vehicles and public transport vehicles.
+			for (Entry<Integer, int[]> entry : active_RFID_vehicles.entrySet()){
+				int[] array = entry.getValue();
+				int rfid = array[0]/10000;
+				if (rfid== local_streetID) {
+					if((entry.getKey()/10000) < 4 && (entry.getKey()/10000)>0) {
+						relayValues[2] += 1;
+						}
+					else if((entry.getKey()/10000)>0){
+						relayValues[3] += 1;
+						}	
+					}
+				
+				}
+			}
+	
+		relayValues[1] = oldValue[1] + videoFeed - relayValues[2] - relayValues[3];	
+		// a if() for ensuring the that the number of vehicles becomes Zero then the videofeed is zero.
+		if(videoFeed == 0 || relayValues[1] < 0 ) {
+			relayValues[1] = 0;
+		}
+		// if the camera is broken.
+		else if(videoFeed== -1) {
+			relayValues[1]  = oldValue[1];
+		}
+				
+		// Prepares the data of the number of participants per category for storage
+		String ValueText = relayValues[0]+";"+relayValues[1]+";"+relayValues[2]+";"+relayValues[3];
+		MemoryValues.put(local_streetID, ValueText);
+		return MemoryValues;		
 	} 
 	
 	/**
-	 * Calculates the number of pedestrians on the street.
-	 * @param street_nr: the number of the street
-	 * @param oldValues: the previous calculated numbers from the last iteration. 
-	 * @param streetSensor1: data from sensor1 in form of a hashmap.
-	 * @param streetSensor2: data from sensor2 in form of a hashmap.
-	 * 											key = the number that has entered the street at the sensor
-	 * 											value = the number that has left the street at the sensor.
-	 * @return: the number of pedestrians on the street.
+	 *  Calculates the number of pedestrians on the street.
 	 * @throws IOException
 	 */
 	public void pedestrianCounting() throws IOException {
 		//Adds the old number of pedestrians from 
 		relayValues[0]  = oldValue[0];
 		
-		
-		// check if sensor 1 is working, if so add the nr from sensor 1. 
+		// check if sensor 1 is working, if so add the number of nr from sensor 1. 
 		if(local_streetSensor1[0] != -1) {
 			relayValues[0] += (local_streetSensor1[0]-local_streetSensor1[1]);
 		}

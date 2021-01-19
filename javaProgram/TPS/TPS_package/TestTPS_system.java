@@ -14,62 +14,97 @@ import org.junit.jupiter.api.Test;
 class TestTPS_system {
 	
 	TPS_main TPS_Main = new TPS_main();
-	DataRelay data_Relay = new DataRelay();
-	stringConverter string_Converter = new stringConverter();
-
-	Random r = new Random();
-
-	HashMap<Integer, Integer> DataGetRFID_Test = new HashMap<Integer, Integer>();
-	HashMap<Integer, Integer> DataGetRFID_TestCompare = new HashMap<Integer, Integer>();
 	
-	HashMap<Integer, int[]> DataRelayRFID_Test = new HashMap<Integer, int[]>();
-	HashMap<Integer, int[]> DataRelayValues_Test = new HashMap<Integer, int[]>();
-	HashMap<Integer, Integer> DataRelayRFID_TestCompare = new HashMap<Integer, Integer>();
+	stringConverter string_Converter = new stringConverter();
+	
+	/*@Test
+	void miona() throws IOException {
+		//memoryHandling memory_Handling = new memoryHandling();
+//		memory_Handling.Clear_Memory();
+		TPS_Main.main(2, 2);
+		DataRelay fetch = new DataRelay();
+	    HashMap <Integer, int[]> RFID =  fetch.get_RFID(); 
+int i = 0;
+	}*/
+	
 
 	
 	@Test
 	void DataGet_test() throws IOException {
-		TPS_Main.main(2, 2);
+		DataGet Data_Get = new DataGet();
 		memoryHandling memory_Handling = new memoryHandling();
-		// test getRFID
-		TPS_Main.get_RFIDdara(2, 1);
-		DataGetRFID_TestCompare.putAll(TempGetRFIDData(1));
+		memory_Handling.Clear_Memory();
+			
+		for(int i = 1; i<=3;i++) {
+			//test RFID
+			HashMap<Integer, Integer> DataGetRFID_Test = Data_Get.getRFID(2, i);
+				
+			HashMap<Integer, Integer> DataGetRFID_TestCompare = TempGetRFIDData(i); 
 		
-		DataGetRFID_Test.putAll(string_Converter.StringToIntHashMap(memory_Handling.readMemory(0))); 
-		for (Entry<Integer, Integer> entry : DataGetRFID_Test.entrySet()){
-			assertEquals(DataGetRFID_TestCompare.get(entry.getKey()),entry.getValue());
+			for (Entry<Integer, Integer> entry : DataGetRFID_Test.entrySet()){
+				assertEquals(DataGetRFID_TestCompare.get(entry.getKey()),entry.getValue());
+			}
+			
+			//test sensor
+			int[] dataGetSensor_Test = Data_Get.getNrPedestrians(12, 2, i);
+			int[]  dataGetSensor_TestCompare = TempGetPedestrians(i);
+			
+			for(int j=0; j<2;j++) {
+				assertEquals(dataGetSensor_Test[j],dataGetSensor_TestCompare[j]);
+			}
+			// test video feed.
+			int dataGetVideoFeed_Test = Data_Get.getVideoFeed(12, 2, i);
+			int dataGetVideoFeed_TestCompare = TempVideoFeed(i); 
+			assertEquals(dataGetVideoFeed_Test,dataGetVideoFeed_TestCompare);		
 		}
 		
-		// test getVideoFeed and sensor data.
-		assertTrue(TPS_Main.get_videoFeedAndsensorData(12,2,1));
-		
-		}
+	}
 	
 	
 	@Test
 	void Datarelay_test() throws IOException {
-		TPS_Main.main(2, 2);
+		DataRelay data_Relay = new DataRelay();
+		memoryHandling memory_Handling = new memoryHandling();
 		
-			TPS_Main.main(2, 1);
-		DataRelayValues_Test = data_Relay.get_Nrparticipants(); 
-			/*for (Entry<Integer, int[]> entry : DataRelayValues_Test.entrySet()){
-				int[] k = entry.getValue();
-				assertEquals(200,k[0]);
-				assertEquals(93,k[1]);
-				assertEquals(4,k[2]);
-				assertEquals(33,k[3]);	
-			}*/
-			DataRelayRFID_Test = data_Relay.get_RFID();
-			/*DataRelayRFID_TestCompare.putAll(TempGetRFIDData(1));
-			for (Entry<Integer, int[]> entry : DataRelayRFID_Test.entrySet()){
-				int[] k = entry.getValue();
-				int  Compare = DataRelayRFID_TestCompare.get(entry.getKey()), RFID = k[0];
-				assertEquals(Compare,RFID);
-			}	*/
-	}
+		memory_Handling.Clear_Memory();
+		
+		HashMap<Integer, int[]> DataRelayRFID_Test = new HashMap<Integer, int[]>();
+		HashMap<Integer, Integer> DataRelayRFID_TestCompare = new HashMap<Integer, Integer>();
+		HashMap<Integer, int[]> DataRelayValues_Test = new HashMap<Integer, int[]>();
+		HashMap<Integer, int[]> DataRelayValues_TestCompare = new HashMap<Integer, int[]>();
+		int videoFeedT=0;
+		int[] returnedRFID;
+		int[] sensor1T= {0,0},sensor2T= {0,0};
+		
+		// clear out the memory.
+		
 	
+		
+		for(int i=1 ;i<=3; i++) {
+			System.out.println("I: "+i);
+			TPS_Main.TPS_main(2, i);
+			
+			//test the returned RFID values
+			DataRelayRFID_Test = data_Relay.get_RFID();
+			DataRelayRFID_TestCompare.putAll(TempGetRFIDData(i));
+			if(DataRelayRFID_Test != null) {
+				for (Entry<Integer, int[]> entry : DataRelayRFID_Test.entrySet()){
+					returnedRFID = entry.getValue();
+					int t = DataRelayRFID_TestCompare.get(entry.getKey());
+					int t2 = returnedRFID[0];
+					assertEquals(t,t2);
+				}
+			//test 
+			}
+			
+			DataRelayValues_Test = data_Relay.get_Nrparticipants();
+		}
+		
+	}
+
 	
 //-------------PRIVATE FUNCTIONS---------------------------------------
+	
 	public HashMap<Integer, Integer> TempGetRFIDData(int y) throws IOException{
 		//Code to test the get RFID functions of the program.
 		HashMap<Integer, Integer> testHashMap = new HashMap<Integer, Integer>();
@@ -78,7 +113,6 @@ class TestTPS_system {
 		
 		if( y==-1) {
 			y = 1;
-			//y = cases[r.nextInt(4)];
 		}
 		switch(y) {
 		case 1:
@@ -89,10 +123,7 @@ class TestTPS_system {
 			test = "{10001=120000,10002=49500000, 20001=11120000, 20002=9100000, 30001=21220000, 40001=910000, 50001=11120000, 60001=120000}";
 			break;
 		case 3:
-			test = "{10001=121000,10002=49501000, 20001=11121000, 20002=9101000, 30001=21220000, 40001=910001, 50001=11120191, 60001=120111}";
-			break;
-		case 4:
-			test = "{10001=121000,10002=49501000, 20001=11121000, 20002=9101000, 30001=21220000, 40001=910001, 50001=11120191, 60001=120111}";
+			test = "{10001=121000, 60001=120111}";
 			break;
 		}
 		
@@ -103,27 +134,21 @@ class TestTPS_system {
 	public int TempVideoFeed(int y) throws IOException {
 		//Initiating the variables
 		int test = 0;
-
-		int[] cases = {1,2,3,4};
 		
 		if( y==-1) {
 			y = 1;
-			//y = cases[r.nextInt(4)];
 		}
 		
 		switch(y) {
 		case 1:
 			test = 100;
 			break;
-		// test for the all the vehicles are inactive.
+		// test for then the there are no vehicles on the street.
 		case 2:
 			test = 0;
 			break;
-		case 3:
-			test = 20;
-			break;
 		//Broken camera test.
-		case 4:
+		case 3:
 			test = -1;
 			break;
 		}	
@@ -135,28 +160,21 @@ class TestTPS_system {
 	public int[] TempGetPedestrians(int y) throws IOException {
 		//Initiating the variables
 		int[] test = {0,0};
-
-		int[] cases = {1,2,3,4};
-				
+		
 		if( y==-1) {
 			y = 1;
-		//y = cases[r.nextInt(4)];
-				}
+			}
 		switch(y) {
 			case 1:
-				test[0] = 120;
+				test[0] = 25;
 				test[1] = 20;
 				break;
 			case 2:
 				test[0] = 0;
-				test[1] = 0;
-				break;
-			case 3:
-				test[0] = 25;
-				test[1] = 20;
+				test[1] = 5;
 				break;
 			//Broken SENSOR test.
-			case 4:
+			case 3:
 				test[0] = -1;
 				test[1] = -1;
 				break;

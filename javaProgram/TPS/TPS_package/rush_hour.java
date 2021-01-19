@@ -6,7 +6,7 @@ public class rush_hour {
 	static int start = 2;
 	static int end = 4;
 	
-	/**
+	/**CURRENTLY NOT IMPLEMENTED FULLY.
 	 * Checks if it is rush hour or not.
 	 * @param x the Current iteration. 
 	 * @throws IOException 
